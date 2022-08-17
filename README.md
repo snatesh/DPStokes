@@ -10,17 +10,11 @@ We provide a simple python interface, but the key performance-sensitive pieces (
 
 The solver can be used to solve mobility problems for colloidal layers in doubly periodic systems (in x,y), including those which are unbounded in z (DP), containing a bottom wall (DPBW) or the doubly periodic slit channel (DPSC). For the confined geometries, a no-slip B.c. is prescribed at the walls, and this is all we expose in this initial release.
 
-The doubly periodic Stokes solver for GPUs is provided by [UAMMD](https://github.com/RaulPPelaez/uammd), which is included as a submodule inside the `source/gpu` folder. **Make sure to clone this repo recursively** by doing:
-```shell
-git clone --recursive https://github.com/stochasticHydroTools/DPStokesTests
-```
-At the moment, only a python interface to use the module is provided.
-
 The CPU version of the solver is included in `source/cpu`. In particular, this implements an OpenMP-based C++ spreading and interpolation library in 3D that supports also non-uniform grids in the z direction. One can use the C++ library directly if desired, but there is a python interface wrapping it as well.
 
 ## Installation
 
-To be able to use either the GPU or CPU versions on demand you will need to have reasonably new versions of CUDA, GNU or Intel C++ compilers, and python 3. For example, on Courant machines you can use something like:
+To be able to use either the GPU or CPU versions on demand, you will need to have reasonably new versions of CUDA, GNU or Intel C++ compilers, and python 3. For example, on Courant machines you can use something like:
 ```shell
 module load cuda-10.2
 module load intel-2019
@@ -33,7 +27,7 @@ make
 ```
 will compile and set up both the CPU and GPU python interfaces for the solver.
 
-The top level `Makefile` in DoublyPeriodicStokes contains a section where a user
+The top level `Makefile` in DPStokes contains a section where a user
 can specify the dependency library names/paths, install paths and the like.
 Users should source the bash script `cpuconfig.sh` before using either 
 the GPU or CPU Python interface in a new shell, and can edit the thread environment 
