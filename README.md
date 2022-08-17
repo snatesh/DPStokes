@@ -14,35 +14,34 @@ The CPU version of the solver is included in `source/cpu`. In particular, this i
 
 ## Installation
 
-To be able to use either the GPU or CPU versions on demand, you will need to have reasonably new versions of CUDA, GNU or Intel C++ compilers, and python 3. For example, on Courant machines you can use something like:
-```shell
-module load cuda-10.2
-module load intel-2019
-module load gcc-6.4.0
-module load python-3.8
-```
-From DoublyPeriodicStokes, Running 
+To be able to use either the GPU or CPU versions on demand, you will need to have reasonably new versions of CUDA, GNU or Intel C++ compilers, and python 3. 
+
+From `DPStokes`, Running 
 ```shell
 make 
 ```
-will compile and set up both the CPU and GPU python interfaces for the solver.
+will compile and set up only the CPU libraries and python interfaces for the solver.
 
-The top level `Makefile` in DPStokes contains a section where a user
-can specify the dependency library names/paths, install paths and the like.
+The top level `Makefile` in `DPStokes` contains a section where a user
+can specify the dependency library names/paths, install paths and other information.
+
 Users should source the bash script `cpuconfig.sh` before using either 
 the GPU or CPU Python interface in a new shell, and can edit the thread environment 
-settings therin as needed. The PYTHONPATH and LD_LIBRARY_PATH environment variables
-are appeneded to so that the modules can be used anywhere within the filesystem.
-By default, the script will exist in the $INSTALL_DIR specified in the top Makefile.
+settings therin as needed. Importantly, efficient plans for FFTs are precomputed for a given grid size the first time that size is encountered. They are saved to a folder in the working directory `./fftw_wisdom`. These plans, once precomputed, dramatically improve the initialization and execution time, though users should  select the appropriate thread settings in `cpuconfig.sh` prior to plan creation. See the `FFTW Settings` section in `source/cpu/README.md` for more details.  
+
+When the script is sourced, the `PYTHONPATH` and `LD_LIBRARY_PATH` 
+environment variables are appeneded to so that the installed modules can be used anywhere within the 
+filesystem on the current shell. By default, the script will exist in the `$DPSTOKES_INSTALL` 
+specified in the top Makefile.
 
 If you want to use the Intel compiler for the CPU code, prefix the call to make as
 ```shell
 CPU=Intel make
 ``` 
-Note, even if using the Intel compiler, you must load the module for gcc-6.4.0 or higher, 
+Note, even if using the Intel compiler, you must have the headers for gcc-6.4.0 or higher, 
 as the compiler relies on GNU headers. Also, note that by default with Intel compilers, the [MKL library](https://en.wikipedia.org/wiki/Math_Kernel_Library) is used to provide LAPACK/BLAS functionality. MKL (or other LAPACK/BLAS implementations) can be used with GNU compilers as well by specifying the relevant paths in the top level `Makefile`.
  
-You can compile both CPU and GPU libraries in debug mode through
+You can compile the CPU library in debug mode through
 ```shell
 DEBUG=True make
 ```
@@ -66,8 +65,5 @@ Usage examples for the joint interface are availabe in the `mobility` and `bench
 ### CPU Python interface
 
 See the `source/cpu/README.md` for details. Note, the build instructions contained therein are for using cmake3 as the build system. 
-The section can be ignored, or followed analogously through the provided top level Makefile. The file `python_interface/dpstokesCPU.py` contains an example.
-One can specify particles with differing radii in the CPU Python interface, though we only expose single radius setting in the joint interface.  
-
-OpenMP is used for parallelization and users should control the number of threads and thread pinning via the bash script `python_interface/cpuconfig.sh`. Importantly, efficient plans for FFTs are precomputed for a given grid size the first time that size is encountered. They are saved to a folder in the working directory `./fftw_wisdom`. These plans, once precomputed, dramatically improve the initialization and execution time, though users should  select the appropriate thread settings in `cpuconfig.sh` prior to plan creation. See the `FFTW Settings` section in `source/cpu/README.md` for more details.  
+The section can be ignored, or followed analogously through the provided top level Makefile. The file `python_interface/dpstokesCPU.py` contains an example. 
 
