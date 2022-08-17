@@ -44,16 +44,6 @@ $(DPSTOKES_INSTALL)/libcheb.so: $(chebSRC) $(chebINC)
 
 $(DPSTOKES_INSTALL)/libgrid.so: $(gridSRC) $(gridINC) 
 	@mkdir -p $(DPSTOKES_INSTALL)
-	@if [ ! -d $(FFTW_INSTALL)/lib ]; then\
-	  echo "Downloading and compiling fftw-3.3.9";\
-	  echo "This will take a few minutes";\
-	  wget ftp://ftp.fftw.org/pub/fftw/fftw-3.3.9.tar.gz;\
-	  tar xzf fftw-3.3.9.tar.gz;\
-	  cd fftw-3.3.9;\
-	  ./configure --prefix=$(FFTW_INSTALL) --enable-shared --enable-openmp --enable-sse2 --enable-avx --enable-avx2;\
-	  make -j6; make install; cd ..;\
-	  rm -rf fftw-3.3.9.tar.gz fftw-3.3.9;\
-	fi;\
 	$(CXX) -o $@ $(gridSRC) $(CXXFLAGS) $(FFTW_FLAGS) -lfftw3 -lm -fPIC -fopenmp
 
 $(DPSTOKES_INSTALL)/libparticles.so: $(particlesSRC) $(particlesINC) $(DPSTOKES_INSTALL)/libgrid.so $(DPSTOKES_INSTALL)/libcheb.so
