@@ -65,5 +65,5 @@ Usage examples for the joint interface are availabe in the `mobility` and `bench
 ### CPU Python interface
 
 See the `source/cpu/README.md` for details. Note, the build instructions contained therein are for using cmake3 as the build system. 
-The section can be ignored, or followed analogously through the provided top level Makefile. The file `python_interface/dpstokesCPU.py` contains an example. 
+The section can be ignored, or followed analogously through the provided top level Makefile. The file `python_interface/dpstokesCPU.py` contains an example, as do folders in `source/cpu`.
 
