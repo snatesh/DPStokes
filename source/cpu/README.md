@@ -179,7 +179,7 @@ step in the FCM solution process:
 - configuring particle kernels and grids (`GridAndKernelConfig.py`)
 - creating FFTW plans (`Transform.py`)
 - spreading and interpolation (`SpreadInterp.py`)
-- enforcing boundary conditions ('Ghost.py)
+- enforcing boundary conditions (`Ghost.py`)
 - spectral Stokes solvers (`Solvers.py`)
 - FCM interface (`FCM.py`)
 
