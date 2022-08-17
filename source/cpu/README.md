@@ -54,7 +54,7 @@ CC=icc F77=ifort ./configure --prefix=$SRC_DIR/fftw_install --enable-shared --en
 make
 make install
 ```
-where `$SRC_DIR` is the top level of the project source tree (eg. `/path/to/DoublyPeriodicStokes/source/cpu`)
+where `$SRC_DIR` is the top level of the project source tree (eg. `/path/to/DPStokes/source/cpu`)
 
 Lastly, build the libraries with 
 ```shell
@@ -77,20 +77,20 @@ export OMP_STACKSIZE=256m
 The `PYTHONPATH` and `LD_LIBRARY_PATH` have to be expanded with the location
 of the Python files (in `python` folder), and the shared libraries (in `lib` folder):
 ```shell
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/path/to/DoublyPeriodicStokes/source/cpu/lib
-export PYTHONPATH=${PYTHONPATH}:/path/to/DoublyPeriodicStokes/source/cpu/python
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:DPStokes/source/cpu/lib
+export PYTHONPATH=${PYTHONPATH}:/path/to/DPStokes/source/cpu/python
 ```
 Then, set the `num_threads` variable in the file `python/config.py` to
 the number of threads you want to use, or accomplish this with `sed`.
 ```shell
 num_threads=10
-sed -i "/num_threads/c num_threads=${num_threads}" /path/to/DoublyPeriodicStokes/source/cpu/python/config.py
+sed -i "/num_threads/c num_threads=${num_threads}" /path/to/DPStokes/source/cpu/python/config.py
 ```
 All OpenMP parallel loops throughout the library will use this number of 
 threads, and nested parallelism is disabled. 
 
 A convenience script `cpuconfig.sh` is available in the `examples` folder after installation.
-Note, we also provide it in `DoublyPeriodic/python_interface`. 
+Note, we also provide it in `DPStokes/python_interface`. 
 Executing the following will accomplish the above snippets, and the file can be 
 edited as needed. It must be sourced every time a new shell is used for a run.
 ```shell
@@ -179,7 +179,8 @@ step in the FCM solution process:
 - configuring particle kernels and grids (`GridAndKernelConfig.py`)
 - creating FFTW plans (`Transform.py`)
 - spreading and interpolation (`SpreadInterp.py`)
-- spectral Stokes solver (`Solvers.py`)
+- enforcing boundary conditions ('Ghost.py)
+- spectral Stokes solvers (`Solvers.py`)
 - FCM interface (`FCM.py`)
 
 Below is an example script for using the `FCM` module, also provided in `examples/fcm_example.py`.
@@ -233,8 +234,8 @@ python3 dpstokesCPU.py
 ```
 
 ### Organization ###
-The C++ library files are in `src` and `include`. The C wrapper is in `wrapper`.
+The C++ source and header files are in `src` and `include`. The C wrappers/drivers are in `wrapper`.
 
-The Python wrappers to the exposed C library, as well as currently available solvers are in `python`.
+The Python wrappers to the C library, as well as currently available solvers are in `python`.
 
 Examples using the python wrappers and solvers can be found in `examples`.
