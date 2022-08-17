@@ -1,18 +1,18 @@
 #!/bin/bash
 
-DPSTOKES_ROOT=/home/sachin/Research/NYU/DPStokes
-DPSTOKES_INSTALL=/home/sachin/Research/NYU/DPStokes/python_interface/lib
-CPU=GNU
+DPSTOKES_ROOT=
+DPSTOKES_INSTALL=
+CPU=
 
 #################### BEGIN USER EDIT ####################################
 
 # number of threads for OpenMP
-num_threads=4
+num_threads=10
 # let the shell use the maximum amount of stack memory
 ulimit -s unlimited
 # set mem for thread stack
 export OMP_STACKSIZE=256m
-pin_threads=false
+pin_threads=true
 
 # thread pinning settings
 if [ "$CPU" == "Intel" -a "$pin_threads" == "true" ]; then
