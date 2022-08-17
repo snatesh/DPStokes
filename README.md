@@ -1,240 +1,81 @@
-# FCM for Stokes mobility problems with the ES kernel
-A spectral immersed boundary method for particle suspensions in Stokes flow on doubly and triply periodic domains.
+# A spectral force coupling method for Stokes mobility problems with the ES kernel
 
-### Build Dependencies ###
-The instructions here are for using `cmake3` for the build process. This is not required. The Makefiles provided here work with GNU make. However, these Makefiles are meant to be called from the Makefile of the python interface common to the CPU and GPU implementations.
+## About this repository 
 
-You will need to `apt install` at least the following dependencies:
+This repository implements a variant on the Force Coupling Method for Stokes suspensions, based on the exponential of a semicircle (ES) kernel, see:
+[CITE THE ARTICLE HERE]
+This repo also contains code and scripts to reproduce the data for the figures in the applications section of the article (see the README inside each folder for information about each simulation).
 
-* build-essential
-* cmake3
-* libomp-dev
-* gcc 7.5.0 or later (eg. module load gcc-9.2 on cims machines)
-* FFTW
-* LAPACK and the C interface LAPACKE 
-    (https://www.assistedcoding.eu/2017/11/04/how-to-install-lapacke-ubuntu/)
-* Python 3+ with NumPy/SciPy 
+We provide a simple python interface, but the key performance-sensitive pieces (namely FFTs, BVP solvers, and spreading and interpolation) are implemented in C++/CUDA using FFTW/cuFFT and LAPACK. One can use either the GPU and CPU versions as needed without changing calls. (NOTE: this release does not include GPU version)
 
-### Build Instructions - GNU Compiler ###
-Now, execute the following from the top of the source tree: 
+The solver can be used to solve mobility problems for colloidal layers in doubly periodic systems (in x,y), including those which are unbounded in z (DP), containing a bottom wall (DPBW) or the doubly periodic slit channel (DPSC). For the confined geometries, a no-slip B.c. is prescribed at the walls, and this is all we expose in this initial release.
+
+The doubly periodic Stokes solver for GPUs is provided by [UAMMD](https://github.com/RaulPPelaez/uammd), which is included as a submodule inside the `source/gpu` folder. **Make sure to clone this repo recursively** by doing:
 ```shell
-mkdir build && cd build
-cmake3 -Dfftw_wisdom=on -Duse_stack=on ..
-make -j6 (or however many threads you'd like to use)
-make install
+git clone --recursive https://github.com/stochasticHydroTools/DPStokesTests
 ```
-Executing the commands above will build all libraries and executables. The libraries are
-installed in `$INSTALL_PATH/lib`. Executables are installed in `$INSTALL_PATH/bin`. 
-By default, `$INSTALL_PATH` is the top of the source tree. Setting the `fftw_wisdom`
-flag to off will build the libraries using fftw without the wisdom utility, as
-described below. Build with the `use_stack` flag set to off if you run into
-stack overflow errors during calls to spread/interp.
+At the moment, only a python interface to use the module is provided.
 
-### Build Instructions - Intel Compiler ###
-If using the Intel compilers, there is an additional step of downloading and
-installing FFTW locally.
+The CPU version of the solver is included in `source/cpu`. In particular, this implements an OpenMP-based C++ spreading and interpolation library in 3D that supports also non-uniform grids in the z direction. One can use the C++ library directly if desired, but there is a python interface wrapping it as well.
 
-First, load the Intel compilers with something like
+## Installation
+
+To be able to use either the GPU or CPU versions on demand you will need to have reasonably new versions of CUDA, GNU or Intel C++ compilers, and python 3. For example, on Courant machines you can use something like:
 ```shell
+module load cuda-10.2
 module load intel-2019
+module load gcc-6.4.0
+module load python-3.8
 ```
-or
+From DoublyPeriodicStokes, Running 
 ```shell
-source /opt/intel/bin/compilervars.sh intel64 
-source /opt/intel/mkl/bin/mklvars.sh intel64
+make 
 ```
-Then, download and install FFTW with
+will compile and set up both the CPU and GPU python interfaces for the solver.
 
+The top level `Makefile` in DoublyPeriodicStokes contains a section where a user
+can specify the dependency library names/paths, install paths and the like.
+Users should source the bash script `cpuconfig.sh` before using either 
+the GPU or CPU Python interface in a new shell, and can edit the thread environment 
+settings therin as needed. The PYTHONPATH and LD_LIBRARY_PATH environment variables
+are appeneded to so that the modules can be used anywhere within the filesystem.
+By default, the script will exist in the $INSTALL_DIR specified in the top Makefile.
+
+If you want to use the Intel compiler for the CPU code, prefix the call to make as
 ```shell
-wget ftp://ftp.fftw.org/pub/fftw/fftw-3.3.9.tar.gz
-tar xvzf fftw-3.3.9.tar.gz
-cd fftw-3.3.9
-sed -i 's/fopenmp/qopenmp/g' configure
-CC=icc F77=ifort ./configure --prefix=$SRC_DIR/fftw_install --enable-shared --enable-openmp --enable-sse2 --enable-avx --enable-avx2
-make
-make install
-```
-where `$SRC_DIR` is the top level of the project source tree (eg. `/path/to/DoublyPeriodicStokes/source/cpu`)
-
-Lastly, build the libraries with 
-```shell
-mkdir build && cd build
-cmake3 -Dfftw_wisdom=on -Duse_stack=on -DCMAKE_CXX_COMPILER=icpc -DCMAKE_C_COMPILER=icc ..
-make -j6 (or however many threads you'd like to use)
-make install
-```
-
-### Usage ###
-
-#### Environment Settings ####
-Before using any function (python or c++), set the following environment
-variables for OpenMP (eg. in bash):
-```shell
-ulimit -s unlimited
-export OMP_STACKSIZE=256m
-```
-
-The `PYTHONPATH` and `LD_LIBRARY_PATH` have to be expanded with the location
-of the Python files (in `python` folder), and the shared libraries (in `lib` folder):
-```shell
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/path/to/DoublyPeriodicStokes/source/cpu/lib
-export PYTHONPATH=${PYTHONPATH}:/path/to/DoublyPeriodicStokes/source/cpu/python
-```
-Then, set the `num_threads` variable in the file `python/config.py` to
-the number of threads you want to use, or accomplish this with `sed`.
-```shell
-num_threads=10
-sed -i "/num_threads/c num_threads=${num_threads}" /path/to/DoublyPeriodicStokes/source/cpu/python/config.py
-```
-All OpenMP parallel loops throughout the library will use this number of 
-threads, and nested parallelism is disabled. 
-
-A convenience script `cpuconfig.sh` is available in the `examples` folder after installation.
-Note, we also provide it in `DoublyPeriodic/python_interface`. 
-Executing the following will accomplish the above snippets, and the file can be 
-edited as needed. It must be sourced every time a new shell is used for a run.
-```shell
-$ source cpuconfig.sh
-```
-For thread pinning, one must use different settings depending on how the library was built. These
-can be added to `cpuconfig.sh`. For example, for a 10 core single socket machine with GNU compilation
-```shell
-export OMP_PLACES="{0}:10:1"
-export OMP_PROC_BIND=true
-```
-or with Intel compilation
-```shell
-source /opt/intel/mkl/bin/mklvars.sh intel64  
-export MKL_THREADING_LAYER=sequential
-export KMP_AFFINITY="verbose,proclist=[0,1,2,3,4,5,6,7,8,9],explicit"
-```
-We find that thread pinning must be tested to achieve optimal performance on a given machine. 
-In some cases, no pinning is more optimal. 
-
-#### FFTW Settings ####
-Each solver works on Fourier or Fourier-Chebyshev coefficients of
-3D vector fields computed with FFTW. If the library is built with
-`fftw_wisdom=on` passed to `CMake`, the first time a transform of a 
-given size is requested, the FFT forward and backward plans are 
-saved to disk in the folder `./fftw_wisdom`.
-
-The first call incurs some startup cost, since we use FFTW_MEASURE - one 
-of the slower flags for fftw which produces a more optimal algorithm.
-
-The next time a transform of the same size is requested, the existing
-wisdom is read from disk, signficantly reducing planning time, but giving
-the same optimal algorithm.
-
-Optimality can be further improved by switching FFTW_MEASURE to FFTW_PATIENT
-by adding `-Dfftw_wisdom_patient=on` to the `cmake` command
-
-For example, one way to generate wisdom beforehand without actually running 
-a solver is to execute a python script with something like the following:
-
-```python
-from Transform import *
-
-# size of grid
-Nx = Ny = 128; Nz = 65; dof = 3
-# type of transform (0 = Fourier, 1 = Fourier-Cheb)
-tType = 1
-# Initialize plans, generate wisdom if it doesn't already exist.
-# Assuming num_threads = 6 in config.py, the call will search for, 
-# or create files in fftw_wisdom/ called something like:
-# fftw_forward_wisdom_Nx128_Ny128_Nz126_dof3_nthr6_measure_host.name
-# fftw_backward_wisdom_Nx128_Ny128_Nz126_dof3_nthr6_measure_host.name
-transformer = Transformer(Nx, Ny, Nz, dof, tType)
-# clean memory
-transformer.Clean()
-```
-
-The next time a transform of the same size and type is requested, the wisdom
-will be loaded from disk.
-
-NOTE: Generated wisdom is dependent on
-```
-1) The number of threads set in config.py
-2) The OpenMP environment settings
-    - Eg) OMP_PROC_BIND, OMP_PLACES
-```
-Trying to use wisdom generated with a different number of threads, or 
-even the correct number of threads but a different OpenMP env config
-will cause the planner to fail/stall! It is also recommended to 
-regenerate wisdom each time the library is recompiled.
-
-You can disable the use of wisdom by setting `fftw_wisdom=off` in the 
-command line input to `CMake`. In this case, FFTW_ESTIMATE is the
-planner mode used for all transforms. There is minimal cost
-in computing such plans, though the resulting transform will be
-musch slower for larger transform sizes.
-
-
-#### Using the Python Interface ####
-Each function in the Python interface (in the `python` folder) is equipped with a doc string, 
-and calling `help(module_name)` in Python will print the documentation for all functions in the module. 
-In general, each file in the `python` folder exposes a standalone C library which implements a
-step in the FCM solution process:
+CPU=Intel make
+``` 
+Note, even if using the Intel compiler, you must load the module for gcc-6.4.0 or higher, 
+as the compiler relies on GNU headers. Also, note that by default with Intel compilers, the [MKL library](https://en.wikipedia.org/wiki/Math_Kernel_Library) is used to provide LAPACK/BLAS functionality. MKL (or other LAPACK/BLAS implementations) can be used with GNU compilers as well by specifying the relevant paths in the top level `Makefile`.
  
-- defining particles and grids (`Particles.py`,`Grid.py`, `Chebyshev.py`)
-- configuring particle kernels and grids (`GridAndKernelConfig.py`)
-- creating FFTW plans (`Transform.py`)
-- spreading and interpolation (`SpreadInterp.py`)
-- spectral Stokes solver (`Solvers.py`)
-- FCM interface (`FCM.py`)
-
-Below is an example script for using the `FCM` module, also provided in `examples/fcm_example.py`.
-
-```python
-import sys
-from FCM import *
-
-# example usage of the FCM module
-
-pos  = np.loadtxt('./Test_Data_For_Rollers/Const_Torque_t_15.clones', skiprows=1, usecols=[0,1,2])
-data = np.loadtxt('./Test_Data_For_Rollers/One_Blob/N_Images_64.txt')
-
-nP = 2048; 
-domType = 'DPBW'
-eta = 0.957e-3
-has_torque = True
-minX = 0.0; maxX = 128.7923
-minY = 0.0; maxY = 128.7923
-minZ = 0.0; maxZ = 20.0
-xP = np.reshape(pos, (3 * nP,)).copy()
-forces = data[:,0].copy()
-torques = data[:,1].copy()
-radP = 1.0155 * np.ones(nP, dtype = np.double)
-# w=6 ES kernel for monopole and dipole
-kernTypes = np.zeros(nP, dtype = np.int)
-
-problem = FCM(radP, kernTypes, domType, has_torque)
-problem.SetUnitCell([minX,maxX], [minY,maxY], [minZ,maxZ])
-problem.Initialize(eta, 0)
-problem.SetPositions(xP)
-
-vP, omegaP = problem.Mdot(forces, torques)
-
-# dummy update
-xP += 0.1 * np.abs(vP)
-problem.SetPositions(xP)
-
-vP, omegaP = problem.Mdot(forces, torques)
-
-problem.Clean()
-```
-An example workflow for using this script in Bash from a newly created `run` 
-directory is provided below:
+You can compile both CPU and GPU libraries in debug mode through
 ```shell
-cd && mkdir run && cd run
-cp /path/to/DoublyPeriodicStokes/python_interface/cpuconfig.sh . 
-cp /path/to/DoublyPeriodicStokes/python_interface/dpstokesCPU.py .
-source cpuconfig.sh
-python3 dpstokesCPU.py
+DEBUG=True make
 ```
+Both CPU and DEBUG can also be set from within the `Makefile`, though the 
+command line setting will override the ones in the `Makefile`.
 
-### Organization ###
-The C++ library files are in `src` and `include`. The C wrapper is in `wrapper`.
+## Python Interface
 
-The Python wrappers to the exposed C library, as well as currently available solvers are in `python`.
+A common python interface is provided that allows one to compute the hydrodynamic displacements for a group of positions with forces and/or torques acting on them in different geometries, mainly:  
 
-Examples using the python wrappers and solvers can be found in `examples`.
+	* Triply periodic, using a standard FFT-based spectral Stokes solver.
+	* Doubly periodic (either with no walls, a bottom wall or a slit channel), see paper for details.
+
+Hydrodynamic displacements coming from forces and torques can be computed. 
+For the GPU interface, if the torque-related arguments are ommited, the computations related to them are skipped entirely.
+For the CPU interface, the user must specify whether torques are involved with a boolean swith, like `has_torque=True`.
+        
+The file `python_interface/common_interface_wrapper.py` is the joint CPU-GPU interface. 
+Usage examples for the joint interface are availabe in the `mobility` and `benchmark` folders.
+
+### CPU Python interface
+
+See the `source/cpu/README.md` for details. Note, the build instructions contained therein are for using cmake3 as the build system. 
+The section can be ignored, or followed analogously through the provided top level Makefile. The file `python_interface/dpstokesCPU.py` contains an example.
+One can specify particles with differing radii in the CPU Python interface, though we only expose single radius setting in the joint interface.  
+OpenMP is used for parallelization and users should control the number of threads via the bash script `cpuconfig.sh`. Importantly, efficient plans
+for FFTs are precomputed for a given grid size the first time that size is encountered. They are saved to a folder in the working directory `./fftw_wisdom`. These
+plans, once precomputed, dramatically improve the initialization and execution time, though users should  select the appropriate 
+thread settings in `cpuconfig.sh` prior to plan creation. See the `FFTW Settings` section in `source/cpu/README.md` for more details.  
+
