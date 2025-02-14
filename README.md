@@ -3,7 +3,7 @@
 ## About this repository 
 
 This repository implements a variant on the Force Coupling Method for Stokes suspensions, based on the exponential of a semicircle (ES) kernel, see:
-[CITE THE ARTICLE HERE]
+[JCP article](https://pubs.aip.org/aip/jcp/article-abstract/158/15/154101/2882262/Computing-hydrodynamic-interactions-in-confined?redirectedFrom=fulltext)
 This repo also contains code and scripts to reproduce the data for the figures in the applications section of the article (see the README inside each folder for information about each simulation).
 
 We provide a simple python interface, but the key performance-sensitive pieces (namely FFTs, BVP solvers, and spreading and interpolation) are implemented in C++/CUDA using FFTW/cuFFT and LAPACK. One can use either the GPU and CPU versions as needed without changing calls. (NOTE: this release does not include GPU version)
